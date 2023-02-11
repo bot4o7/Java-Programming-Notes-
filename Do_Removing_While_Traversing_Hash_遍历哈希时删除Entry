@@ -1,0 +1,74 @@
+       // 场景:  需要遍历 HashMap 中的每一个元素 各一次，  且对单个 Key 的访问中，可能会访问到后面的 Key， 导致对个别 Key 访问了多次。
+       
+       // 原代码直接在 遍历的同时， 进行remove操作， 出现了 fast-fail错误， 且因为 HashMap 没有下标访问方式，因此无法通过 计算和维护index 和 size 来实现需求。
+       
+       // 解决方法: 不使用remove， 而是用另一个 HashSet 存储访问过的 Key， 保证每个元素只访问一次。
+               
+          // 原代码
+          
+          for (Iterator<Map.Entry<Integer, Integer>> it = map.entrySet().iterator(); it.hasNext(); ) {
+            Map.Entry<Integer, Integer> item = it.next();
+            int key = item.getKey();
+            int sum = item.getValue();
+
+                              // 不谈其他代码
+            it.remove(item);  // Wrong Coding. Java only allows "it.remove()", which will remove the current Entry of the iterator.
+                              // 错误代码。 Java 的 Iterator 的 remove()中无参数       
+            
+            //map.remove(key);    // 如果在map中直接remove， 而不是使用iterator 的 remove()， 那么Iterator中的size并不会改变，以至于会出现fast-fail错误。
+            
+                                  // 如果是遍历数组、链表， 你可以维护一个int size，并适时调整下标 int i 来保证正常遍历，不过若逻辑有错误，仍会出现fast-fail错误
+                                  
+                                  // 解决方法看  下面的代码
+            for (int i = key - 1; map.containsKey(i); --i) {
+                sum += map.get(i);
+                it.remove(i);
+                //map.remove(i);
+            }
+
+            for (int i = key + 1; map.containsKey(i); ++i) {
+                sum += map.get(i);
+                it.remove(i);
+            }
+
+            if (sum > max) {
+                max = sum;
+            }
+        }
+        
+        
+        
+        
+        // 下面的代码
+        
+        //HashMap<Integer, Boolean> used = new HashMap<Integer, Boolean>();
+        Set<Integer> used = new HashSet<Integer>();
+        
+        // 我使用了一个 HashSet used 来存储已经访问过的 Key
+      
+        for (Iterator<Map.Entry<Integer, Integer>> it = map.entrySet().iterator(); it.hasNext(); ) {
+            Map.Entry<Integer, Integer> item = it.next();
+            //item.getKey();
+            if (used.contains(item.getKey())) {
+                //it.remove();
+            } else {
+                int value = item.getValue();
+                //used.put(item.getKey(), true);
+                used.add(item.getKey());
+                for (int i = item.getKey()+1; map.containsKey(i) && !used.contains(i); ++i) {
+                //    sum += map.get(i);
+                value += map.get(i);
+                    //used.put(i, true);
+                    used.add(i);
+                }
+                for (int i = item.getKey()-1; map.containsKey(i) && !used.contains(i); --i) {
+                value += map.get(i);
+                    //used.put(i, true);
+                    used.add(i);
+                }
+                if (value > max) {
+                    max = value;
+                }
+            }
+        } 
+
